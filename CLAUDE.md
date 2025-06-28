@@ -29,6 +29,7 @@ Lovely Shaders - Love2Dを使用したローカル動作のシェーダー開発
 - **戻り値保証**: ファサードパターンでは戻り値の明示的返却必須、nil返却は成功/失敗判定を破綻させる
 - **requireの括弧**: `require`は括弧書きで使用する(ex. `local Module = require("path.to.module")`)
 - **EmmyLua/LuaLSアノテーション**: 全ての関数、クラス、ファイルに包括的なアノテーションを追加する
+- **UIイベント処理**: ダイアログなど重層的UIではイベント処理順序に注意、適切なマウス処理委譲を行う
 
 ## コード品質管理
 
@@ -137,6 +138,7 @@ selene .
 - **Canvas使用**: 複雑な描画の事前レンダリング
 - **SpriteBatch**: 大量スプライトの効率的描画
 - **ImageData最適化**: ピクセル操作の効率化
+- **Shaderパフォーマンス**: 解像度スケール調整、フレームレート制限、統計監視によるリアルタイム最適化
 
 ## セキュリティとエラーハンドリング
 
@@ -156,6 +158,16 @@ local function safeLoadImage(path)
     else
         print("Warning: Failed to load image: " .. path)
         return nil -- またはデフォルト画像
+    end
+end
+
+-- 安全なシェーダーUniform送信
+local function safeSendUniform(shader, name, value)
+    local success, err = pcall(function()
+        shader:send(name, value)
+    end)
+    if not success then
+        print("Warning: Failed to send uniform '" .. name .. "': " .. tostring(err))
     end
 end
 ```
