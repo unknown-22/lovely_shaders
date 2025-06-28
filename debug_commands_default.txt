@@ -1,0 +1,27 @@
+# MobDebug デフォルトコマンドファイル
+# 行頭が # の行はコメントとして無視されます
+# 空行も無視されます
+
+# love.update関数にブレークポイントを設定
+setb main.lua 103
+
+# 実行開始
+run
+
+# 基本変数の確認
+exec print("=== デバッグ情報 ===")
+exec print("dt:", dt)
+exec print("App.time:", App.time)
+exec print("App.frameCount:", App.frameCount)
+
+# ステップ実行
+step
+
+# ステップ後の状態確認
+exec print("ステップ実行後のApp.time:", App.time)
+
+# スタックトレース表示
+stack
+
+# 実行継続
+run

@@ -9,7 +9,7 @@ function love.conf(t)
     t.author = "Lovely Shaders Team"
     t.identity = "lovely_shaders"
     t.version = "11.5"
-    t.console = false
+    t.console = true
     t.accelerometerjoystick = false
     t.externalstorage = false
     t.gammacorrect = false

@@ -16,6 +16,24 @@ local UniformPanel = require("ui.uniform_panel")
 local PerformanceMonitor = require("core.performance_monitor")
 local PerformanceSettings = require("core.performance_settings")
 
+-- デバッグ用引数チェック
+local DEBUG_MODE = false
+for i, arg in ipairs(arg or {}) do
+    if arg == "--debug" then
+        DEBUG_MODE = true
+        break
+    end
+end
+
+-- MobDebugサーバーに接続
+if DEBUG_MODE then
+    local socket = require("socket")
+    print(socket._VERSION)  -- LuaSocketのバージョンを表示
+    local mobdebug = require("mobdebug")
+    mobdebug.start("localhost", 8172)  -- デフォルトポート8172
+    print("MobDebug接続を開始しました")
+end
+
 ---@class App
 ---@field shaderManager ShaderManager シェーダー管理
 ---@field fileManager FileManager ファイル管理

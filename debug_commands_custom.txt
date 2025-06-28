@@ -1,0 +1,24 @@
+# カスタムデバッグコマンド例
+# このファイルをコピーして独自のデバッグシナリオを作成できます
+
+# シェーダー関連のデバッグ
+setb main.lua 240
+run
+
+# シェーダー描画時の変数確認
+exec print("=== シェーダーデバッグ ===")
+exec print("画面サイズ:", love.graphics.getDimensions())
+exec print("シェーダーエラー:", App.shaderManager:getErrors())
+
+# UniformManager のデバッグ
+exec print("=== Uniform変数 ===")
+exec for name, uniform in pairs(App.uniformManager.uniforms) do print(name, uniform.value) end
+
+# パフォーマンス情報
+exec print("=== パフォーマンス ===")
+exec print("FPS:", love.timer.getFPS())
+exec print("メモリ使用量:", collectgarbage("count"), "KB")
+
+step
+stack
+run
