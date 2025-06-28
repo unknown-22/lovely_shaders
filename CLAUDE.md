@@ -159,3 +159,6 @@ local function safeLoadImage(path)
     end
 end
 ```
+
+## プロジェクトdokyumennto 
+- `@LovelyShaders仕様書.md` ツール全体の仕様書

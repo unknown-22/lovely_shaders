@@ -348,7 +348,7 @@ animations = {
 
 ## 実装優先順位
 
-### Phase 1（MVP）
+### Phase 1（MVP - Minimum Viable Product）
 1. 基本的なテキストエディタ
 2. Shadertoy互換のUniform変数
 3. シンプルなファイル保存・読み込み

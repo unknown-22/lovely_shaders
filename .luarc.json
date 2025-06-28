@@ -1,0 +1,40 @@
+{
+    "runtime": {
+        "version": "LuaJIT",
+        "path": [
+            "?.lua",
+            "?/init.lua"
+        ]
+    },
+    "workspace": {
+        "library": [
+            "${3rd}/love2d/library"
+        ],
+        "ignoreDir": [
+            "lib",
+            "test"
+        ]
+    },
+    "diagnostics": {
+        "globals": [
+            "love",
+            "jit"
+        ],
+        "disable": [
+            "luadoc-miss-module-name",
+            "undefined-doc-param",
+            "undefined-doc-name",
+            "undefined-doc-class",
+            "inject-field",
+            "undefined-field",
+            "assign-type-mismatch",
+            "return-type-mismatch",
+            "need-check-nil",
+            "param-type-mismatch",
+            "missing-fields"
+        ]
+    },
+    "completion": {
+        "callSnippet": "Replace"
+    }
+}
