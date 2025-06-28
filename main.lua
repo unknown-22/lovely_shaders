@@ -6,12 +6,22 @@ local ShaderManager = require("core.shader_manager")
 local FileManager = require("core.file_manager")
 local Editor = require("ui.editor")
 local Components = require("ui.components")
+local ChannelPanel = require("ui.channel_panel")
+local TemplateManager = require("core.template_manager")
+local TemplatePanel = require("ui.template_panel")
+local ExportManager = require("core.export_manager")
+local ExportDialog = require("ui.export_dialog")
 
 ---@class App
 ---@field shaderManager ShaderManager シェーダー管理
 ---@field fileManager FileManager ファイル管理
 ---@field editor Editor テキストエディタ
 ---@field components Components UIコンポーネント
+---@field channelPanel ChannelPanel チャンネルパネル
+---@field templateManager TemplateManager テンプレート管理
+---@field templatePanel TemplatePanel テンプレートパネル
+---@field exportManager ExportManager エクスポート管理
+---@field exportDialog ExportDialog エクスポートダイアログ
 ---@field showEditor boolean エディタ表示フラグ
 ---@field time number 経過時間
 ---@field frameCount number フレーム数
@@ -40,6 +50,11 @@ function love.load()
     App.fileManager = FileManager.new()
     App.editor = Editor.new()
     App.components = Components.new()
+    App.channelPanel = ChannelPanel.new(App.shaderManager:getChannelManager())
+    App.templateManager = TemplateManager.new()
+    App.templatePanel = TemplatePanel.new(App.templateManager)
+    App.exportManager = ExportManager.new(App.shaderManager)
+    App.exportDialog = ExportDialog.new(App.exportManager)
     
     App.showEditor = true
     App.time = 0
@@ -79,6 +94,24 @@ function love.draw()
     
     App:drawMenuBar(width)
     App:drawStats()
+    
+    -- テンプレートパネルを上に描画
+    if App.templatePanel:isVisible() then
+        local panelWidth = 600
+        local panelHeight = 500
+        local panelX = (width - panelWidth) / 2
+        local panelY = (height - panelHeight) / 2
+        App.templatePanel:draw(panelX, panelY, panelWidth, panelHeight)
+    end
+    
+    -- エクスポートダイアログを上に描画
+    if App.exportDialog:isVisible() then
+        local dialogWidth = 400
+        local dialogHeight = 300
+        local dialogX = (width - dialogWidth) / 2
+        local dialogY = (height - dialogHeight) / 2
+        App.exportDialog:draw(dialogX, dialogY, dialogWidth, dialogHeight)
+    end
 end
 
 ---@brief メニューバー描画
@@ -99,8 +132,11 @@ function App:drawMenuBar(width)
             if content then App.editor:setText(content) end
         end},
         {text = "コンパイル", x = 130, action = function() App.shaderManager:compile(App.editor:getText()) end},
-        {text = "エディタ切替", x = 220, action = function() App.showEditor = not App.showEditor end},
-        {text = "ヘルプ", x = 340, action = function() print("ヘルプ機能は未実装") end}
+        {text = "テンプレート", x = 220, action = function() App.templatePanel:toggle() end},
+        {text = "エクスポート", x = 310, action = function() App.exportDialog:toggle() end},
+        {text = "エディタ切替", x = 400, action = function() App.showEditor = not App.showEditor end},
+        {text = "リロード", x = 520, action = function() App.templateManager:reload() end},
+        {text = "ヘルプ", x = 590, action = function() print("ヘルプ機能は未実装") end}
     }
     
     for _, button in ipairs(buttons) do
@@ -148,12 +184,7 @@ end
 ---@param width number 幅
 ---@param height number 高さ
 function App:drawChannelSettings(x, y, width, height)
-    love.graphics.setColor(0.12, 0.12, 0.14, 1.0)
-    love.graphics.rectangle("fill", x, y, width, height)
-    
-    love.graphics.setColor(0.95, 0.95, 0.96, 1.0)
-    love.graphics.print("チャンネル設定", x + 8, y + 8)
-    love.graphics.print("（Phase 2で実装予定）", x + 8, y + 32)
+    App.channelPanel:draw(x, y, width, height)
 end
 
 ---@brief プレビュー描画
@@ -200,6 +231,36 @@ function love.mousepressed(x, y, button)
         App.mousePressed = true
         App.components:mousepressed(x, y)
         App.editor:mousepressed(x, y)
+        
+        -- ダイアログのクリック処理（最優先）
+        local width, height = love.graphics.getDimensions()
+        
+        -- エクスポートダイアログ
+        if App.exportDialog:isVisible() then
+            local dialogWidth = 400
+            local dialogHeight = 300
+            local dialogX = (width - dialogWidth) / 2
+            local dialogY = (height - dialogHeight) / 2
+            App.exportDialog:mousepressed(x, y, dialogX, dialogY, dialogWidth, dialogHeight)
+        -- テンプレートパネル
+        elseif App.templatePanel:isVisible() then
+            local panelWidth = 600
+            local panelHeight = 500
+            local panelX = (width - panelWidth) / 2
+            local panelY = (height - panelHeight) / 2
+            local templateCode = App.templatePanel:mousepressed(x, y, panelX, panelY, panelWidth, panelHeight)
+            if templateCode then
+                App.editor:setText(templateCode)
+                App.shaderManager:compile(templateCode)
+            end
+        else
+            -- チャンネルパネルのクリック処理
+            if App.showEditor then
+                local editorWidth = math.floor(width * EDITOR_WIDTH_RATIO)
+                local panelY = height - PANEL_HEIGHT
+                App.channelPanel:mousepressed(x, y, 0, panelY, editorWidth)
+            end
+        end
     end
 end
 
@@ -234,6 +295,13 @@ function love.keypressed(key)
     else
         App.editor:keypressed(key)
     end
+end
+
+---@brief マウスホイール処理
+---@param x number X方向のスクロール
+---@param y number Y方向のスクロール
+function love.wheelmoved(x, y)
+    App.templatePanel:wheelmoved(x, y)
 end
 
 ---@brief テキスト入力処理

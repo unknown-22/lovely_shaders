@@ -2,6 +2,8 @@
 ---@brief シェーダー管理モジュール
 ---@details シェーダーのコンパイル、エラーハンドリング、Uniform変数管理を行う
 
+local ChannelManager = require("core.channel_manager")
+
 ---@class ShaderManager
 ---@field shader love.Shader 現在のシェーダー
 ---@field defaultShader love.Shader デフォルトシェーダー
@@ -9,6 +11,7 @@
 ---@field lastCompileTime number 最後のコンパイル時刻
 ---@field quad love.SpriteBatch 描画用クワッド
 ---@field canvas love.Canvas 描画用キャンバス
+---@field channelManager ChannelManager チャンネル管理
 local ShaderManager = {}
 ShaderManager.__index = ShaderManager
 
@@ -24,6 +27,7 @@ function ShaderManager.new()
     self.errors = {}
     self.lastCompileTime = 0
     self.canvas = nil
+    self.channelManager = ChannelManager.new()
     
     return self
 end
@@ -177,6 +181,9 @@ function ShaderManager:updateUniforms(time, deltaTime, frameCount)
     if hasUniform("iDate") then
         self.shader:send("iDate", {date.year, date.month, date.day, secondsInDay})
     end
+    
+    -- チャンネルテクスチャを送信
+    self.channelManager:sendToShader(self.shader)
 end
 
 ---@brief シェーダー描画
@@ -211,6 +218,12 @@ end
 ---@return boolean シェーダーが存在するかどうか
 function ShaderManager:hasShader()
     return self.shader ~= nil
+end
+
+---@brief チャンネルマネージャー取得
+---@return ChannelManager
+function ShaderManager:getChannelManager()
+    return self.channelManager
 end
 
 ---@brief リソース解放
