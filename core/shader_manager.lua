@@ -12,6 +12,7 @@ local ChannelManager = require("core.channel_manager")
 ---@field quad love.SpriteBatch 描画用クワッド
 ---@field canvas love.Canvas 描画用キャンバス
 ---@field channelManager ChannelManager チャンネル管理
+---@field uniformManager UniformManager|nil カスタムUniform変数管理
 local ShaderManager = {}
 ShaderManager.__index = ShaderManager
 
@@ -28,6 +29,7 @@ function ShaderManager.new()
     self.lastCompileTime = 0
     self.canvas = nil
     self.channelManager = ChannelManager.new()
+    self.uniformManager = nil
     
     return self
 end
@@ -184,6 +186,11 @@ function ShaderManager:updateUniforms(time, deltaTime, frameCount)
     
     -- チャンネルテクスチャを送信
     self.channelManager:sendToShader(self.shader)
+    
+    -- カスタムUniform変数を送信
+    if self.uniformManager then
+        self.uniformManager:applyToShader(self.shader)
+    end
 end
 
 ---@brief シェーダー描画
@@ -224,6 +231,18 @@ end
 ---@return ChannelManager
 function ShaderManager:getChannelManager()
     return self.channelManager
+end
+
+---@brief UniformManager設定
+---@param uniformManager UniformManager カスタムUniform変数管理
+function ShaderManager:setUniformManager(uniformManager)
+    self.uniformManager = uniformManager
+end
+
+---@brief UniformManager取得
+---@return UniformManager|nil
+function ShaderManager:getUniformManager()
+    return self.uniformManager
 end
 
 ---@brief リソース解放

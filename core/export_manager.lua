@@ -80,13 +80,13 @@ function ExportManager:exportImage(width, height, filename)
                 {0, 0, 0, 0},        -- vec4
             }
             
-            local success = false
+            local testSuccess = false
             for _, testValue in ipairs(testValues) do
-                success = pcall(function() shader:send(name, testValue) end)
-                if success then break end
+                testSuccess = pcall(function() shader:send(name, testValue) end)
+                if testSuccess then break end
             end
             
-            return success
+            return testSuccess
         end
         
         if hasUniform("iResolution") then

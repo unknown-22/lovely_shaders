@@ -11,6 +11,10 @@ local TemplateManager = require("core.template_manager")
 local TemplatePanel = require("ui.template_panel")
 local ExportManager = require("core.export_manager")
 local ExportDialog = require("ui.export_dialog")
+local UniformManager = require("core.uniform_manager")
+local UniformPanel = require("ui.uniform_panel")
+local PerformanceMonitor = require("core.performance_monitor")
+local PerformanceSettings = require("core.performance_settings")
 
 ---@class App
 ---@field shaderManager ShaderManager シェーダー管理
@@ -22,6 +26,10 @@ local ExportDialog = require("ui.export_dialog")
 ---@field templatePanel TemplatePanel テンプレートパネル
 ---@field exportManager ExportManager エクスポート管理
 ---@field exportDialog ExportDialog エクスポートダイアログ
+---@field uniformManager UniformManager カスタムUniform変数管理
+---@field uniformPanel UniformPanel カスタムUniform変数パネル
+---@field performanceMonitor PerformanceMonitor パフォーマンス監視
+---@field performanceSettings PerformanceSettings パフォーマンス設定
 ---@field showEditor boolean エディタ表示フラグ
 ---@field time number 経過時間
 ---@field frameCount number フレーム数
@@ -55,6 +63,13 @@ function love.load()
     App.templatePanel = TemplatePanel.new(App.templateManager)
     App.exportManager = ExportManager.new(App.shaderManager)
     App.exportDialog = ExportDialog.new(App.exportManager)
+    App.uniformManager = UniformManager.new()
+    App.uniformPanel = UniformPanel.new(App.uniformManager)
+    App.performanceMonitor = PerformanceMonitor.new()
+    App.performanceSettings = PerformanceSettings.new()
+    
+    -- UniformManagerをShaderManagerに設定
+    App.shaderManager:setUniformManager(App.uniformManager)
     
     App.showEditor = true
     App.time = 0
@@ -72,6 +87,7 @@ function love.update(dt)
     
     App.shaderManager:updateUniforms(App.time, dt, App.frameCount)
     App.editor:update(dt)
+    App.performanceMonitor:update(dt)
 end
 
 ---@brief Love2D描画処理
@@ -135,12 +151,19 @@ function App:drawMenuBar(width)
         {text = "テンプレート", x = 220, action = function() App.templatePanel:toggle() end},
         {text = "エクスポート", x = 310, action = function() App.exportDialog:toggle() end},
         {text = "エディタ切替", x = 400, action = function() App.showEditor = not App.showEditor end},
-        {text = "リロード", x = 520, action = function() App.templateManager:reload() end},
-        {text = "ヘルプ", x = 590, action = function() print("ヘルプ機能は未実装") end}
+        {text = "統計切替", x = 520, action = function() App.performanceMonitor:toggleDetails() end},
+        {text = "品質設定", x = 600, action = function() 
+            App.performanceSettings:setPerformanceTarget(
+                App.performanceSettings.performanceTarget == "quality" and "balanced" or
+                App.performanceSettings.performanceTarget == "balanced" and "performance" or "quality"
+            )
+        end},
+        {text = "ヘルプ", x = 690, action = function() print("ヘルプ機能は未実装") end}
     }
     
     for _, button in ipairs(buttons) do
-        App.components:drawButton(button.x, 8, 60, 24, button.text, button.action)
+        local buttonWidth = string.len(button.text) > 6 and 80 or 60
+        App.components:drawButton(button.x, 8, buttonWidth, 24, button.text, button.action)
     end
 end
 
@@ -205,21 +228,17 @@ end
 ---@param width number 幅
 ---@param height number 高さ
 function App:drawParameterPanel(x, y, width, height)
-    love.graphics.setColor(0.12, 0.12, 0.14, 1.0)
-    love.graphics.rectangle("fill", x, y, width, height)
-    
-    love.graphics.setColor(0.95, 0.95, 0.96, 1.0)
-    love.graphics.print("パラメータ", x + 8, y + 8)
-    love.graphics.print("（Phase 3で実装予定）", x + 8, y + 32)
+    App.uniformPanel:draw(x, y, width, height)
 end
 
 ---@brief 統計情報描画
 function App:drawStats()
-    local fps = love.timer.getFPS()
-    local memUsage = math.floor(collectgarbage("count"))
+    local height = love.graphics.getHeight()
+    App.performanceMonitor:draw(10, height - 40)
     
-    love.graphics.setColor(0.95, 0.95, 0.96, 0.7)
-    love.graphics.print(string.format("FPS: %d | Memory: %dKB", fps, memUsage), 10, love.graphics.getHeight() - 20)
+    -- パフォーマンス設定情報
+    love.graphics.setColor(0.60, 0.60, 0.64, 0.7)
+    love.graphics.print(App.performanceSettings:getStatsString(), 10, height - 20)
 end
 
 ---@brief マウス押下処理
@@ -254,11 +273,16 @@ function love.mousepressed(x, y, button)
                 App.shaderManager:compile(templateCode)
             end
         else
-            -- チャンネルパネルのクリック処理
+            -- チャンネルパネルとUniformパネルのクリック処理
             if App.showEditor then
                 local editorWidth = math.floor(width * EDITOR_WIDTH_RATIO)
                 local panelY = height - PANEL_HEIGHT
                 App.channelPanel:mousepressed(x, y, 0, panelY, editorWidth)
+                
+                -- UniformPanelのクリック処理
+                local previewWidth = width - editorWidth
+                local previewHeight = height - PANEL_HEIGHT
+                App.uniformPanel:mousepressed(x, y, editorWidth, previewHeight, previewWidth, PANEL_HEIGHT)
             end
         end
     end
@@ -281,6 +305,10 @@ function love.keypressed(key)
         App.shaderManager:compile(App.editor:getText())
     elseif key == "f11" then
         local _ = love.window.setFullscreen(not love.window.getFullscreen())
+    elseif key == "f1" then
+        print("ヘルプ: F5=リロード, F11=フルスクリーン, F12=統計切替, Ctrl+S=保存, Ctrl+O=開く")
+    elseif key == "f12" then
+        App.performanceMonitor:toggleDetails()
     elseif key == "escape" then
         love.event.quit()
     elseif love.keyboard.isDown("lctrl" --[[@as love.KeyConstant]]) or love.keyboard.isDown("rctrl" --[[@as love.KeyConstant]]) then
@@ -294,6 +322,7 @@ function love.keypressed(key)
         end
     else
         App.editor:keypressed(key)
+        App.uniformPanel:keypressed(key)
     end
 end
 
@@ -302,10 +331,12 @@ end
 ---@param y number Y方向のスクロール
 function love.wheelmoved(x, y)
     App.templatePanel:wheelmoved(x, y)
+    App.uniformPanel:wheelmoved(x, y)
 end
 
 ---@brief テキスト入力処理
 ---@param text string 入力テキスト
 function love.textinput(text)
     App.editor:textinput(text)
+    App.uniformPanel:textinput(text)
 end

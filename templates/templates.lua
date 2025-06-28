@@ -44,5 +44,11 @@ return {
         description = "チャンネルテクスチャのデモ",
         category = "チャンネル",
         file = "channel_demo.glsl"
+    },
+    {
+        name = "Custom Uniforms Demo",
+        description = "カスタムUniform変数のデモ",
+        category = "カスタム",
+        file = "custom_uniforms_demo.glsl"
     }
 }
